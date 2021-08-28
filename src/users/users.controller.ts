@@ -5,6 +5,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { JoinRequestDto } from './dto/join.request.dto';
@@ -19,12 +20,12 @@ import { UserDto } from './dto/user.dto';
 import { User } from '../common/decorators/user.decorator';
 import { UndefinedToNullInterceptor } from '../common/interceptors/undefinedToNull.interceptor';
 
-// 전체 컨트롤러에서 return 되는 모든 값에 적용 된다
+// 전체 컨트롤러에서 return 되는 모든 값에 적용 된다 (개별도 가능)
 @UseInterceptors(UndefinedToNullInterceptor)
 @ApiTags('USERS')
 @Controller('api/users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @ApiOkResponse({
     description: '성공!',
@@ -39,18 +40,20 @@ export class UsersController {
   getUsers(@User() user) {
     return user;
   }
-  /*  getUsers(@Req() req) {
+  /*
+  getUsers(@Req() req) {
     return req.user;
     // res.locals.jwt
   }*/
 
   @ApiOperation({ summary: '회원가입' })
   @Post()
-  postUsers(@Body() data: JoinRequestDto) {
-    this.usersService.postUsers(data.email, data.nickname, data.password);
+  async join(@Body() data: JoinRequestDto) {
+    await this.usersService.join(data.email, data.nickname, data.password);
   }
 
   @ApiOperation({ summary: '로그인' })
+  @UseGuards() // 권한
   @Post('login')
   logIn(@User() user) {
     // @Req() req

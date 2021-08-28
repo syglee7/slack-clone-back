@@ -25,11 +25,8 @@ export class UndefinedToNullInterceptor implements NestInterceptor {
 // { data: user, code: 'SUCCESS' }
 
 // A -> B -> C -> D
-
 // A -> C -> D
-
 // A -> E -> F -> D -> G
-
 // Z -> A -> X -> D
 
 // 컨트롤러 실행 전 후에 특정 동작을 추가 해 줄 수 있다.
