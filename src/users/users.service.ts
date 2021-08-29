@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  HttpException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Users } from '../entities/Users';
-import { Repository } from 'typeorm';
+import { Repository, Transaction, TransactionRepository } from 'typeorm';
 import bcrypt from 'bcrypt';
+import { WorkspaceMembers } from '../entities/WorkspaceMembers';
+import { ChannelMembers } from '../entities/ChannelMembers';
 
 @Injectable()
 export class UsersService {
@@ -16,10 +13,21 @@ export class UsersService {
     // DI 할 때 실제 객체는 module 에 넣어줘야 함
     @InjectRepository(Users)
     private usersRepository: Repository<Users>,
+    @InjectRepository(WorkspaceMembers)
+    private workspaceMembersRepository: Repository<WorkspaceMembers>,
+    @InjectRepository(ChannelMembers)
+    private channelMembersRepository: Repository<ChannelMembers>,
   ) {}
+
   getUser() {}
 
-  async join(email: string, nickname: string, password: string) {
+  @Transaction()
+  async join(
+    @TransactionRepository(Users) usersRepository: Repository<Users>,
+    email: string,
+    nickname: string,
+    password: string,
+  ) {
     if (!email) {
       // 이메일 없다고 에러
       // throw new Error('이메일 없음');
@@ -40,7 +48,7 @@ export class UsersService {
 
     // -- 이 모든걸 자동으로 체크 할 수는 없을까? -> DTO단에서 가능함! --
 
-    const user = await this.usersRepository.findOne({ where: { email } });
+    const user = await usersRepository.findOne({ where: { email } });
     if (user) {
       // 이미 존재하는 유저라고 에러
       //throw new Error('이미 존재하는 사용자 입니다.');
@@ -48,10 +56,24 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    await this.usersRepository.save({
+    const returned = await usersRepository.save({
       email,
       nickname,
       password: hashedPassword,
     });
+
+    // const workspaceMember = this.workspaceMembersRepository.create();
+    const workspaceMember = new WorkspaceMembers();
+    workspaceMember.UserId = returned.id;
+    workspaceMember.WorkspaceId = 1;
+
+    await this.workspaceMembersRepository.save(workspaceMember);
+
+    await this.channelMembersRepository.save({
+      UserId: returned.id,
+      ChannelId: 1,
+    });
+
+    return true;
   }
 }

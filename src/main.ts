@@ -11,7 +11,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const port = process.env.PORT || 3000;
 
-  app.useGlobalPipes(new ValidationPipe());
+  // @Param, @Body 등으로 오는 파라미터는 기본적으로 String 인데 transfrom: true 해주면
+  // 지정된 타입으로 자동 변환 해준다
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
